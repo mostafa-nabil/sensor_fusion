@@ -128,6 +128,101 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 
 
 template<typename PointT>
+std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SegmentPlaneOwn(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceThreshold)
+{
+    // Time segmentation process
+    auto startTime = std::chrono::steady_clock::now();
+
+    /*intialize plane parameters of the final plane eqaution*/
+    
+    //maximum number of inliers
+    typename pcl::PointIndices::Ptr lastMaxInliers {new pcl::PointIndices()}; 
+    //plane equation constants
+	float bestLineA = 0;
+	float bestLineB = 0;
+	float bestLineC = 0;
+	float bestLineD = 0;
+
+    /*main ransac iteration*/
+    for(int i = 0; i < maxIterations; i++)
+    {
+        /*A plane is defined by three points, choose three random
+        points from the point cloud*/
+        PointT point1 = cloud->points[rand()%cloud->points.size()];
+		PointT point2 = cloud->points[rand()%cloud->points.size()];
+		PointT point3 = cloud->points[rand()%cloud->points.size()];
+
+        /*for simplicity of the equations, use x1, y1, x2,..,etc variables*/
+        float x1,x2,x3,y1,y2,y3,z1,z2,z3;
+        x1 = point1.x;
+        x2 = point2.x;
+        x3 = point3.x;
+        y1 = point1.y;
+        y2 = point2.y;
+        y3 = point3.y;
+        z1 = point1.z;
+        z2 = point2.z;
+        z3 = point3.z;
+
+        /*calculate the coefficients of the plane equation*/
+        float A = (y2-y1)*(z3-z1) - (z2-z1)*(y3-y1);
+		float B = (z2-z1)*(x3-x1)-(x2-x1)*(z3-z1);
+		float C = (x2-x1)*(y3-y1)-(y2-y1)*(x3-x1);
+		float D = -(A*x1 + B*y1 + C*z1);
+
+        /*find the number of inliers in the plane by looping on every point
+        and calculating the distance to the plane*/
+	    typename pcl::PointIndices inliers;
+
+        //TODO: do not calculate distances for the three random points
+        for(int idx = 0; idx < cloud->points.size(); idx++)
+        {
+            PointT point = cloud->points[idx];
+            float d = abs(A*point.x + B*point.y + C*point.z + D)/sqrt(A*A + B*B + C*C);
+
+            /*check if distance is withing the tolerance*/
+            if(d <= distanceThreshold)
+            {
+                inliers.indices.push_back(idx);
+            }
+            else
+            {
+                //point is an outlier -> do nothing
+            }
+            
+        }
+
+        /*if current number of inliers is greater than last maximum number 
+        of inliers, assign the current as the maximum an save the plane coefficients*/
+
+        if (inliers.indices.size() > lastMaxInliers->indices.size())
+		{
+			*lastMaxInliers = inliers;
+			bestLineA = A;
+			bestLineB = B;
+			bestLineC = C;
+			bestLineD = D;
+		}
+        else
+        {
+            //do nothing
+        }
+        
+
+    }//end for(int i = 0; i < maxIterations; i++)
+
+
+    auto endTime = std::chrono::steady_clock::now();
+    auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+    
+    std::cout << "plane segmentation took " << elapsedTime.count() << " milliseconds" << std::endl;
+
+    /*extract inliers and outliers from input point cloud*/
+    std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult = SeparateClouds(lastMaxInliers,cloud);
+    return segResult;
+}
+
+template<typename PointT>
 std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::Clustering(typename pcl::PointCloud<PointT>::Ptr cloud, float clusterTolerance, int minSize, int maxSize)
 {
 

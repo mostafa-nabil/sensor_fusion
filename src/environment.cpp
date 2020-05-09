@@ -86,7 +86,7 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
     pcl::PointCloud<pcl::PointXYZI>::Ptr filteredCloud;
     filteredCloud = pointProcessorI->FilterCloud(inputCloud, 0.2, Eigen::Vector4f {-50,-5,-5,1}, Eigen::Vector4f {50,5,10,1});
     
-    std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> obstacleGroundPair=pointProcessorI->SegmentPlane(filteredCloud,100,0.2);
+    std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> obstacleGroundPair=pointProcessorI->SegmentPlaneOwn(filteredCloud,100,0.2);
     
     renderPointCloud(viewer, obstacleGroundPair.first, "obstacles",Color(1,0,0));
     renderPointCloud(viewer, obstacleGroundPair.second, "ground",Color(0,1,0));
@@ -147,6 +147,9 @@ int main (int argc, char** argv)
     pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloudI;
 
     auto streamIterator = stream.begin();
+    CameraAngle setAngle = FPS;
+    initCamera(setAngle, viewer);
+
     while (!viewer->wasStopped ())
     {
 
@@ -167,9 +170,6 @@ int main (int argc, char** argv)
         viewer->spinOnce ();
     }
 
-    
-    CameraAngle setAngle = XY;
-    initCamera(setAngle, viewer);
 
     while (!viewer->wasStopped ())
     {
