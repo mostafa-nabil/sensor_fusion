@@ -81,12 +81,11 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
   // -----Open 3D viewer and display City Block     -----
   // ----------------------------------------------------
 
-    //ProcessPointClouds<pcl::PointXYZI>* pointProcessorI = new ProcessPointClouds<pcl::PointXYZI>();
-    //pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloud = pointProcessorI->loadPcd("../src/sensors/data/pcd/data_1/0000000000.pcd");
+    
     pcl::PointCloud<pcl::PointXYZI>::Ptr filteredCloud;
     filteredCloud = pointProcessorI->FilterCloud(inputCloud, 0.2, Eigen::Vector4f {-50,-5,-5,1}, Eigen::Vector4f {50,5,10,1});
     
-    std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> obstacleGroundPair=pointProcessorI->SegmentPlaneOwn(filteredCloud,100,0.2);
+    std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> obstacleGroundPair=pointProcessorI->SegmentPlane(filteredCloud,100,0.2);
     
     renderPointCloud(viewer, obstacleGroundPair.first, "obstacles",Color(1,0,0));
     renderPointCloud(viewer, obstacleGroundPair.second, "ground",Color(0,1,0));
@@ -94,20 +93,18 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
     Box box{-2.5,-2.5,-1,2.5,2.5,0};
     renderBox(viewer, box, 10000, Color(1,1,0));
 
-    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->ClusteringOwn(obstacleGroundPair.first,1.0,20,1000);
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->Clustering(obstacleGroundPair.first,1.0,20,1000);
 
     int clusterId = 0;
     std::vector<Color> colors = {Color{1,0,0}, Color{1,1,0}, Color{0,0,1}};
     for(pcl::PointCloud<pcl::PointXYZI>::Ptr cluster : cloudClusters)
     {
-        //pointProcessorI->numPoints(cluster);
         renderPointCloud(viewer,cluster,"obstcloud"+std::to_string(clusterId),colors[clusterId%colors.size()]);
 
         Box box = pointProcessorI->BoundingBox(cluster);
         renderBox(viewer, box, clusterId);
         ++clusterId;
     }
-    //renderPointCloud(viewer,filteredCloud,"filteredCloud");
 }
 
 
